@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fahim Family Ultimate</title>
+<style>
+body{
+margin:0;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+font-family:Arial;
+color:white;
+text-align:center;
+overflow:hidden;
+}
+#game{
+position:relative;
+width:100%;
+height:75vh;
+overflow:hidden;
+}
+.player{
+width:85px;
+height:85px;
+border-radius:50%;
+position:absolute;
+bottom:20px;
+left:45%;
+overflow:hidden;
+box-shadow:0 0 20px gold;
+}
+.player img{
+width:100%;
+height:100%;
+object-fit:cover;
+}
+.item,.danger{
+width:70px;
+height:70px;
+border-radius:50%;
+position:absolute;
+top:0;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+color:black;
+}
+.item img{
+width:100%;
+height:100%;
+object-fit:cover;
+border-radius:50%;
+}
+.item{background:white;}
+.danger{background:red;color:white;}
+
+#info{font-size:18px;}
+#powerBar{
+width:80%;
+height:10px;
+background:gray;
+margin:5px auto;
+border-radius:10px;
+overflow:hidden;
+}
+#powerFill{
+width:0%;
+height:100%;
+background:lime;
+}
+
+#intro,#final{
+position:absolute;
+width:100%;
+height:100%;
+background:black;
+top:0;
+left:0;
+display:flex;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+}
+
+button{
+padding:10px 20px;
+border:none;
+border-radius:10px;
+font-size:16px;
+margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div id="intro">
+<h2>⚡ Fahim Family ULTIMATE ⚡</h2>
+<p>Protect Your Family & Unlock Power Mode</p>
+<button onclick="startGame()">Start Game</button>
+</div>
+
+<h3 id="info">Score: 0 | Lives: 3 | Stage: 1</h3>
+<div id="powerBar"><div id="powerFill"></div></div>
+
+<div id="game">
+<div class="player" id="player">
+<img src="fahim.jpg" onerror="this.src='https://via.placeholder.com/85'">
+</div>
+</div>
+
+<div id="final" style="display:none;">
+<h2 id="resultText"></h2>
+<p id="highScoreText"></p>
+<button onclick="location.reload()">Play Again</button>
+</div>
+
+<script>
+const game=document.getElementById("game");
+const player=document.getElementById("player");
+const info=document.getElementById("info");
+const intro=document.getElementById("intro");
+const final=document.getElementById("final");
+const resultText=document.getElementById("resultText");
+const powerFill=document.getElementById("powerFill");
+const highScoreText=document.getElementById("highScoreText");
+
+let score=0,lives=3,stage=1,speed=3,power=0,invincible=false;
+let gameInterval,dangerInterval;
+
+let highScore=localStorage.getItem("familyHighScore")||0;
+
+function updateInfo(){
+info.innerText=`Score: ${score} | Lives: ${lives} | Stage: ${stage}`;
+powerFill.style.width=power+"%";
+}
+
+document.addEventListener("mousemove",(e)=>{
+player.style.left=e.clientX-40+"px";
+});
+document.addEventListener("touchmove",(e)=>{
+player.style.left=e.touches[0].clientX-40+"px";
+});
+
+function createItem(){
+const names=["jannat.jpg","saad.jpg","sarah.jpg"];
+const item=document.createElement("div");
+item.classList.add("item");
+item.style.left=Math.random()*(window.innerWidth-70)+"px";
+item.innerHTML=`<img src="${names[Math.floor(Math.random()*3)]}" onerror="this.src='https://via.placeholder.com/70'">`;
+game.appendChild(item);
+
+let topPos=0;
+const fall=setInterval(()=>{
+topPos+=speed;
+item.style.top=topPos+"px";
+
+const r=item.getBoundingClientRect();
+const p=player.getBoundingClientRect();
+
+if(r.bottom>p.top && r.left<p.right && r.right>p.left){
+score++;
+power+=10;
+if(power>=100){activatePower();}
+if(score%10===0){stage++;speed+=1;}
+updateInfo();
+clearInterval(fall);
+game.removeChild(item);
+}
+
+if(topPos>window.innerHeight){
+clearInterval(fall);
+if(game.contains(item)) game.removeChild(item);
+}
+},20);
+}
+
+function createDanger(){
+const danger=document.createElement("div");
+danger.classList.add("danger");
+danger.innerText="👿";
+danger.style.left=Math.random()*(window.innerWidth-70)+"px";
+game.appendChild(danger);
+
+let topPos=0;
+const fall=setInterval(()=>{
+topPos+=speed+2;
+danger.style.top=topPos+"px";
+
+const r=danger.getBoundingClientRect();
+const p=player.getBoundingClientRect();
+
+if(r.bottom>p.top && r.left<p.right && r.right>p.left){
+if(!invincible){
+lives--;
+player.style.boxShadow="0 0 30px red";
+setTimeout(()=>player.style.boxShadow="0 0 20px gold",300);
+if(lives<=0) gameOver(false);
+}
+clearInterval(fall);
+game.removeChild(danger);
+updateInfo();
+}
+
+if(topPos>window.innerHeight){
+clearInterval(fall);
+if(game.contains(danger)) game.removeChild(danger);
+}
+},20);
+}
+
+function activatePower(){
+invincible=true;
+power=0;
+player.style.boxShadow="0 0 40px cyan";
+setTimeout(()=>{
+invincible=false;
+player.style.boxShadow="0 0 20px gold";
+},5000);
+}
+
+function gameOver(win){
+clearInterval(gameInterval);
+clearInterval(dangerInterval);
+
+if(score>highScore){
+localStorage.setItem("familyHighScore",score);
+highScore=score;
+}
+
+final.style.display="flex";
+resultText.innerText= win?"🏆 FAMILY SAVED! HERO MODE 👑":"💔 Game Over!";
+highScoreText.innerText="High Score: "+highScore;
+}
+
+function startGame(){
+intro.style.display="none";
+gameInterval=setInterval(createItem,1200);
+dangerInterval=setInterval(createDanger,2000);
+updateInfo();
+}
+</script>
+
+</body>
+</html>
